@@ -58,7 +58,7 @@ int main(int argc, char** argv)
     struct sockaddr_in ser_addr;
     ser_addr.sin_family = AF_INET;
     ser_addr.sin_addr.s_addr = inet_addr(argv[1]);
-    ser_addr.sin_port = htons(argv[2]);
+    ser_addr.sin_port = htons(*argv[2]);
 
     if(connect(sock_conn, (struct sockaddr*)&ser_addr, sizeof(struct sockaddr_in)))
     {
@@ -75,12 +75,12 @@ int main(int argc, char** argv)
     s2.pth = 2;
     s2.sock = sock_conn;
 
-    if(pthread_create(p1, NULL, pth_send, (void*)&s1))
+    if(pthread_create(&p1, NULL, pth_send, (void*)&s1))
     {
         perror("pthread_create");
         exit(EXIT_FAILURE);
     }
-    if(pthread_create(p2, NULL, pth_recv, (void*)&s2))
+    if(pthread_create(&p2, NULL, pth_recv, (void*)&s2))
     {
         perror("pthread_create");
         exit(EXIT_FAILURE);
@@ -99,9 +99,8 @@ int main(int argc, char** argv)
 void* pth_send(void* arg)
 {
     pthread_detach(pthread_self());
-    pth_sock sock;
+    pth_sock sock = *(pth_sock*)arg;
     data data;
-    int ret;
     char msg[1024];
 
     scanf("%s", msg);
