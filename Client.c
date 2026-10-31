@@ -12,13 +12,16 @@
 #include <unistd.h>
 
 
-void* pth(void* arg);
+void* pth_send(void* arg);
+void* pth_recv(void* arg);
 
 typedef struct
 {
     int len;
-    int id;
+    int send_id;
+    int recv_id;
     short mode;
+    short group;
     time_t time;
 }data;
 
@@ -72,8 +75,17 @@ int main(int argc, char** argv)
     s2.pth = 2;
     s2.sock = sock_conn;
 
-    pthread_create(p1, NULL, pth, (void*)&s1);
-    pthread_create(p2, NULL, pth, (void*)&s2);
+    if(pthread_create(p1, NULL, pth_send, (void*)&s1))
+    {
+        perror("pthread_create");
+        exit(EXIT_FAILURE);
+    }
+    if(pthread_create(p2, NULL, pth_recv, (void*)&s2))
+    {
+        perror("pthread_create");
+        exit(EXIT_FAILURE);
+    }
+
 
 
 
@@ -84,9 +96,44 @@ int main(int argc, char** argv)
 }
 
 
-void* pth(void* arg)
+void* pth_send(void* arg)
 {
-    arg = (pth_sock*)arg;
+    pthread_detach(pthread_self());
+    pth_sock sock;
+    data data;
+    int ret;
+    char msg[1024];
+
+    scanf("%s", msg);
+    data.len = strlen(msg);
+    data.mode = 1;
+    data.group = 0;
+    data.send_id = 1;
+    data.recv_id = 2;
+    send(sock.sock, &data, sizeof(data), 0);
+    send(sock.sock, msg, data.len, 0);
+
+    pthread_exit(NULL);
+}
+
+
+void* pth_recv(void* arg)
+{
+    pthread_detach(pthread_self());
+    pth_sock sock;
+    data data;
+    int ret;
+    char msg[1024];
+
+    sock = *(pth_sock*)arg;
+
+    recv(sock.sock, &data, sizeof(data), 0);
+    ret = recv(sock.sock, msg, data.len, 0);
+    if(ret > 0)
+    {
+        msg[ret] = '\0';
+        printf("%dsay:%s", data.send_id,msg);
+    }
 
 
     pthread_exit(NULL);
